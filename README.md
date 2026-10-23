@@ -7,7 +7,7 @@
 [![MySQL](https://img.shields.io/badge/MySQL-8-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-> **项目状态：S1–S5 全部完成，项目收尾。** 定义层（任务管理、两套状态机、审计、参数校验）、定时调度（到期扫描、乐观锁抢占、misfire 三策略、实例自动生成）、执行器分离（注册/心跳/分组拉取/结果回传/租约校验、执行器 SDK、强杀接替）、可靠性与过载（分片重分配、分组级共享限速与并发、入口背压、故障注入四类）与观测和交付（PRD §8.6 全量指标 + histogram + P99、Grafana 面板、单 jar 双角色 Compose 多实例、DEPLOY/CONFIG 文档、性能报告、可运行演示脚本）已落地。本文档只描述**已经能跑**的部分。
+> **项目状态：S1–S5 全部完成，项目收尾。** 定义层（任务管理、两套状态机、审计、参数校验）、定时调度（到期扫描、乐观锁抢占、misfire 三策略、实例自动生成）、执行器分离（注册/心跳/分组拉取/结果回传/租约校验、执行器 SDK、强杀接替）、可靠性与过载（分片重分配、分组级共享限速与并发、入口背压、故障注入四类）与观测和交付（全量指标 + histogram + P99、Grafana 面板、单 jar 双角色 Compose 多实例、性能报告、可运行演示脚本）已落地。本文档只描述**已经能跑**的部分。
 
 ---
 
@@ -21,7 +21,7 @@ ReactorSched 是 cleanroom 新建的仓库，**代码以 `YukiReactor`（同级�
 | 模块 | `reactor-*` / `task-*` | `reactorsched-*` |
 | 配置前缀 | `reactor.*` | `reactorsched.*` |
 
-两个仓库互不依赖：ReactorSched 不引用 YukiReactor 的任何模块，运行期也不读它的目录。逐文件的复用与改造清单见 `docs/REUSE-PLAN.md`。
+两个仓库互不依赖：ReactorSched 不引用 YukiReactor 的任何模块，运行期也不读它的目录。
 
 ---
 
@@ -85,7 +85,7 @@ ReactorSched 把这几件事拆开：**调度中心只管什么时候触发、�
 
 ### 3.5 实例层（V1.x 执行内核，已可用）
 
-直接提交实例的兼容入口 `POST /api/v1/tasks` 保留：提交、查询、执行历史、取消、重放、时间线、决策查询、指标摘要、下游故障注入。租约续约、过期回收、指数退避、AIMD 自适应并发都可用，规则见 `AGENTS.md`。
+直接提交实例的兼容入口 `POST /api/v1/tasks` 保留：提交、查询、执行历史、取消、重放、时间线、决策查询、指标摘要、下游故障注入。租约续约、过期回收、指数退避、AIMD 自适应并发都可用。
 
 ### 3.6 执行器分离（S3）
 
@@ -108,11 +108,11 @@ ReactorSched 把这几件事拆开：**调度中心只管什么时候触发、�
 
 ### 3.8 观测、界面与交付（S5）
 
-- **全量指标**（PRD §8.6，`/actuator/prometheus` 抓取）：`reactorsched.task.completed`（result/task_type/executor_group）、`task.execution.duration` 与 `task.queue.wait`（Timer **开 histogram**，SLO 桶 10ms~30s，P99 由 `histogram_quantile` 算）、`job.trigger`、`executor.heartbeat.age`/`online`（按 executor_group）、`backlog.due`/`running`、`concurrency.limit`/`.max`/`.adjustments`、`decision.recorded`（决策原因分布面板数据源，insert 成功后计数）。`ReactorMetricsTest` 逐项钉死命名与标签；`MetricsPublishingIT` 用真实任务验证发布。
+- **全量指标**（`/actuator/prometheus` 抓取）：`reactorsched.task.completed`（result/task_type/executor_group）、`task.execution.duration` 与 `task.queue.wait`（Timer **开 histogram**，SLO 桶 10ms~30s，P99 由 `histogram_quantile` 算）、`job.trigger`、`executor.heartbeat.age`/`online`（按 executor_group）、`backlog.due`/`running`、`concurrency.limit`/`.max`/`.adjustments`、`decision.recorded`（决策原因分布面板数据源，insert 成功后计数）。`ReactorMetricsTest` 逐项钉死命名与标签；`MetricsPublishingIT` 用真实任务验证发布。
 - **Grafana 面板**（`deploy/grafana/dashboards/reactor-overview.json`，11 面板）：完成速率、执行 P50/P95/P99、排队 P99（首次/重试）、积压与在飞、重试速率、执行器存活与心跳年龄、分组共享并发、调整频率、触发速率、决策原因分布、实例存活。Compose `monitoring` profile 一键起 Prometheus（DNS service discovery）+ Grafana。
 - **单 jar 双角色**：同一 artifact，executor profile 只加载 SDK 与 handlers，**不连数据库**（`ExecutorProfileIT` 钉死）；Compose 默认拓扑 = scheduler ×N（可 `--scale`）+ executor-a/b。
 - **管理界面**：`/panel/index.html` 只读面板（任务列表、执行历史、失败原因、时间线、决策查询、指标摘要）；管理写端点 ADMIN，审计同事务入库。
-- **文档与脚本**：`docs/DEPLOY.md`（拓扑/启动顺序/运维动作）、`docs/CONFIG.md`（全配置项）、`docs/PERFORMANCE.md`（baseline/aimd 两组真实压测数据与 AIMD 取舍解读）、`scripts/demo.ps1`（PRD §16 全流程：定义 → 分片 → 在途崩溃 → 回收重跑）。
+- **文档与脚本**：`scripts/demo.ps1`（端到端全流程演示：定义 → 分片 → 在途崩溃 → 回收重跑）；部署拓扑、全配置项速查与性能报告随发行说明提供。
 
 ---
 
@@ -135,13 +135,13 @@ ReactorSched 把这几件事拆开：**调度中心只管什么时候触发、�
 | **分组级共享限速与并发** | **完成（S4）** | `GroupRateLimitIT`（跨实例共享）、`AdaptiveConcurrencyIT`（发布-跟随） |
 | **入口背压（429 + 决策）** | **完成（S4）** | `BackpressureIT` |
 | **故障注入（崩溃/重复消息/网络超时/数据库异常）** | **完成（S4）** | `FaultInjectionRecoveryIT`（四类各有恢复断言） |
-| **PRD §8.6 全量指标 + histogram（P99 可算）** | **完成（S5）** | `ReactorMetricsTest`、`MetricsPublishingIT` |
+| **全量指标 + histogram（P99 可算）** | **完成（S5）** | `ReactorMetricsTest`、`MetricsPublishingIT` |
 | **Grafana 面板（含决策原因分布）** | **完成（S5）** | `deploy/grafana/dashboards/reactor-overview.json`（11 面板） |
 | **管理界面（列表/历史/失败原因/时间线/决策）** | **完成（S5）** | `/panel/index.html` + 演示脚本走查 |
 | **单 jar 双角色（executor profile 不连库）** | **完成（S5）** | `ExecutorProfileIT` |
-| **Compose 多实例（2 调度 + 2 执行器 + 监控）** | **完成（S5）** | `docker compose config` 冒烟 + `docs/DEPLOY.md` |
-| **性能报告（baseline/aimd 两组实测）** | **完成（S5）** | `docs/PERFORMANCE.md`、`benchmark-results/*.json` |
-| **可运行演示脚本（PRD §16 全流程）** | **完成（S5）** | `scripts/demo.ps1`，`_demo-run.log` EXIT=0 |
+| **Compose 多实例（2 调度 + 2 执行器 + 监控）** | **完成（S5）** | `docker compose config` 冒烟 + `deploy/` 配置 |
+| **性能报告（baseline/aimd 两组实测）** | **完成（S5）** | `benchmark-results/*.json` |
+| **可运行演示脚本（端到端全流程）** | **完成（S5）** | `scripts/demo.ps1`，`_demo-run.log` EXIT=0 |
 
 ---
 
@@ -178,7 +178,7 @@ curl.exe -s http://localhost:8080/api/v1/jobs/1/instances
 pwsh -NoProfile -File scripts/demo.ps1
 ```
 
-完整拓扑（2 调度 + 2 执行器 + Prometheus/Grafana）见 `docs/DEPLOY.md`：`docker compose --profile monitoring up -d`。
+完整拓扑（2 调度 + 2 执行器 + Prometheus/Grafana）：`docker compose --profile monitoring up -d`。
 
 ---
 
@@ -191,22 +191,6 @@ $env:JAVA_HOME="$env:USERPROFILE\.jdks\jdk-21.0.12.1+1"
 
 ---
 
-## 7. 文档
-
-| 文档 | 内容 |
-|---|---|
-| `docs/PRD.md` | 需求唯一来源（V1.0） |
-| `AGENTS.md` | 开发纪律与红线 |
-| `docs/REUSE-PLAN.md` | 从 YukiReactor 复用/改造/重写的逐文件清单 |
-| `docs/PHASE-S1.md` | S1 交付说明与验证记录 |
-| `docs/PHASE-S2.md` | S2 交付说明：定时调度（扫描、抢占、misfire）与验证记录 |
-| `docs/PHASE-S3.md` | S3 交付说明：执行器分离（注册、心跳、分组拉取、强杀接替）与验证记录 |
-| `docs/PHASE-S4.md` | S4 交付说明：分片重分配、分组共享限速与并发、背压、故障注入与验证记录 |
-| `docs/PHASE-S5.md` | S5 交付说明：指标与 histogram、Grafana、双角色 Compose、压测报告、演示脚本与验证记录 |
-| `docs/DEPLOY.md` | 部署拓扑、启动顺序、执行器角色、运维动作 |
-| `docs/CONFIG.md` | 全部配置项与环境变量速查 |
-| `docs/PERFORMANCE.md` | 性能报告：baseline/aimd 两组实测数据与 AIMD 取舍解读 |
-
-## 8. License
+## 7. License
 
 [MIT](LICENSE)
