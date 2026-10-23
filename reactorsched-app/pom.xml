@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.yuki</groupId>
+        <artifactId>reactorsched</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>reactorsched-app</artifactId>
+    <name>reactorsched-app</name>
+    <description>Spring Boot wiring and configuration</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.yuki</groupId>
+            <artifactId>reactorsched-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.yuki</groupId>
+            <artifactId>reactorsched-core</artifactId>
+        </dependency>
+        <!-- Handlers (main and test) compile against the executor SPI. -->
+        <dependency>
+            <groupId>com.yuki</groupId>
+            <artifactId>reactorsched-executor-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.yuki</groupId>
+            <artifactId>reactorsched-executor-registry</artifactId>
+        </dependency>
+        <!-- Test scope: the S3 integration tests run real executor processes from the SDK against
+             the randomly-ported application. -->
+        <dependency>
+            <groupId>com.yuki</groupId>
+            <artifactId>reactorsched-executor-sdk</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.yuki</groupId>
+            <artifactId>reactorsched-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.yuki</groupId>
+            <artifactId>reactorsched-worker</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.yuki</groupId>
+            <artifactId>reactorsched-recovery</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.yuki</groupId>
+            <artifactId>reactorsched-scheduler</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.yuki</groupId>
+            <artifactId>reactorsched-faultlab</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.yuki</groupId>
+            <artifactId>reactorsched-adaptive</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.yuki</groupId>
+            <artifactId>reactorsched-observability</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-mysql</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mysql</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

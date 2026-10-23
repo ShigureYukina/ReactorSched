@@ -1,0 +1,661 @@
+{
+ "annotations": {
+  "list": [
+   {
+    "builtIn": 1,
+    "datasource": {
+     "type": "prometheus",
+     "uid": "reactorsched-prometheus"
+    },
+    "enable": true,
+    "hide": true,
+    "iconColor": "rgba(0, 211, 255, 1)",
+    "name": "Annotations & Alerts",
+    "type": "dashboard"
+   }
+  ]
+ },
+ "editable": true,
+ "fiscalYearStartMonth": 0,
+ "graphTooltip": 1,
+ "id": null,
+ "links": [],
+ "liveNow": false,
+ "panels": [
+  {
+   "datasource": {
+    "type": "prometheus",
+    "uid": "reactorsched-prometheus"
+   },
+   "description": "终态 attempt 的速率，按 result 拆分。成功率 = SUCCEEDED / (SUCCEEDED + FAILED)。",
+   "fieldConfig": {
+    "defaults": {
+     "color": {
+      "mode": "palette-classic"
+     },
+     "unit": "reqps"
+    },
+    "overrides": []
+   },
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 0,
+    "y": 0
+   },
+   "id": 1,
+   "options": {
+    "legend": {
+     "calcs": [
+      "mean",
+      "max"
+     ],
+     "displayMode": "table",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "reactorsched-prometheus"
+     },
+     "editorMode": "code",
+     "expr": "sum by (result) (rate(reactorsched_task_completed_total[5m]))",
+     "legendFormat": "{{result}}",
+     "range": true,
+     "refId": "A"
+    }
+   ],
+   "title": "任务完成速率（按结果）",
+   "type": "timeseries"
+  },
+  {
+   "datasource": {
+    "type": "prometheus",
+    "uid": "reactorsched-prometheus"
+   },
+   "description": "执行耗时的 P50/P95/P99，来自 Timer 的 histogram 桶（PRD 8.6 禁止用平均值冒充分布）。",
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "min": 0
+    },
+    "overrides": []
+   },
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 8,
+    "y": 0
+   },
+   "id": 2,
+   "options": {
+    "legend": {
+     "calcs": [
+      "mean",
+      "max"
+     ],
+     "displayMode": "table",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "reactorsched-prometheus"
+     },
+     "editorMode": "code",
+     "expr": "histogram_quantile(0.99, sum by (le) (rate(reactorsched_task_execution_duration_seconds_bucket[5m])))",
+     "legendFormat": "P99",
+     "range": true,
+     "refId": "A"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "reactorsched-prometheus"
+     },
+     "editorMode": "code",
+     "expr": "histogram_quantile(0.95, sum by (le) (rate(reactorsched_task_execution_duration_seconds_bucket[5m])))",
+     "legendFormat": "P95",
+     "range": true,
+     "refId": "B"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "reactorsched-prometheus"
+     },
+     "editorMode": "code",
+     "expr": "histogram_quantile(0.50, sum by (le) (rate(reactorsched_task_execution_duration_seconds_bucket[5m])))",
+     "legendFormat": "P50",
+     "range": true,
+     "refId": "C"
+    }
+   ],
+   "title": "执行耗时分布（P50 / P95 / P99）",
+   "type": "timeseries"
+  },
+  {
+   "datasource": {
+    "type": "prometheus",
+    "uid": "reactorsched-prometheus"
+   },
+   "description": "排队耗时：实例变为待执行到被领取之间的时间。first_attempt=false 即重试排队。",
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "min": 0
+    },
+    "overrides": []
+   },
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 16,
+    "y": 0
+   },
+   "id": 3,
+   "options": {
+    "legend": {
+     "calcs": [
+      "mean",
+      "max"
+     ],
+     "displayMode": "table",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "reactorsched-prometheus"
+     },
+     "editorMode": "code",
+     "expr": "histogram_quantile(0.99, sum by (le) (rate(reactorsched_task_queue_wait_seconds_bucket{first_attempt=\"true\"}[5m])))",
+     "legendFormat": "P99 首次",
+     "range": true,
+     "refId": "A"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "reactorsched-prometheus"
+     },
+     "editorMode": "code",
+     "expr": "histogram_quantile(0.99, sum by (le) (rate(reactorsched_task_queue_wait_seconds_bucket{first_attempt=\"false\"}[5m])))",
+     "legendFormat": "P99 重试",
+     "range": true,
+     "refId": "B"
+    }
+   ],
+   "title": "排队耗时 P99（首次 / 重试）",
+   "type": "timeseries"
+  },
+  {
+   "datasource": {
+    "type": "prometheus",
+    "uid": "reactorsched-prometheus"
+   },
+   "description": "积压：已就绪但无人领取的实例数。持续 >0 说明执行能力不足。",
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "min": 0
+    },
+    "overrides": []
+   },
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 0,
+    "y": 8
+   },
+   "id": 4,
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "single",
+     "sort": "desc"
+    }
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "reactorsched-prometheus"
+     },
+     "editorMode": "code",
+     "expr": "reactorsched_backlog_due",
+     "legendFormat": "待执行积压",
+     "range": true,
+     "refId": "A"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "reactorsched-prometheus"
+     },
+     "editorMode": "code",
+     "expr": "reactorsched_running",
+     "legendFormat": "在飞 attempt",
+     "range": true,
+     "refId": "B"
+    }
+   ],
+   "title": "积压与在飞",
+   "type": "timeseries"
+  },
+  {
+   "datasource": {
+    "type": "prometheus",
+    "uid": "reactorsched-prometheus"
+   },
+   "description": "重试速率：first_attempt=false 的排队速率。失败风暴时先看这条。",
+   "fieldConfig": {
+    "defaults": {
+     "unit": "reqps"
+    },
+    "overrides": []
+   },
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 8,
+    "y": 8
+   },
+   "id": 5,
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "single",
+     "sort": "desc"
+    }
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "reactorsched-prometheus"
+     },
+     "editorMode": "code",
+     "expr": "sum(rate(reactorsched_task_queue_wait_seconds_count{first_attempt=\"false\"}[5m]))",
+     "legendFormat": "重试排队速率",
+     "range": true,
+     "refId": "A"
+    }
+   ],
+   "title": "重试速率",
+   "type": "timeseries"
+  },
+  {
+   "datasource": {
+    "type": "prometheus",
+    "uid": "reactorsched-prometheus"
+   },
+   "description": "每个执行器组的在线执行器数与心跳年龄。0 且持续为该组已全部下线。",
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "min": 0
+    },
+    "overrides": []
+   },
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 16,
+    "y": 8
+   },
+   "id": 6,
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "reactorsched-prometheus"
+     },
+     "editorMode": "code",
+     "expr": "reactorsched_executor_online",
+     "legendFormat": "{{executor_group}} 在线执行器",
+     "range": true,
+     "refId": "A"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "reactorsched-prometheus"
+     },
+     "editorMode": "code",
+     "expr": "reactorsched_executor_heartbeat_age_seconds",
+     "legendFormat": "{{executor_group}} 心跳年龄",
+     "range": true,
+     "refId": "B"
+    }
+   ],
+   "title": "执行器存活与心跳年龄",
+   "type": "timeseries"
+  },
+  {
+   "datasource": {
+    "type": "prometheus",
+    "uid": "reactorsched-prometheus"
+   },
+   "description": "分组共享并发度（PRD 12.3）：所有执行器读取同一分组值。-1 表示尚无控制器发布。",
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "min": 0
+    },
+    "overrides": []
+   },
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 0,
+    "y": 16
+   },
+   "id": 7,
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "reactorsched-prometheus"
+     },
+     "editorMode": "code",
+     "expr": "clamp_min(reactorsched_concurrency_limit, 0)",
+     "legendFormat": "{{executor_group}} 当前",
+     "range": true,
+     "refId": "A"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "reactorsched-prometheus"
+     },
+     "editorMode": "code",
+     "expr": "clamp_min(reactorsched_concurrency_max, 0)",
+     "legendFormat": "{{executor_group}} 上限",
+     "range": true,
+     "refId": "B"
+    }
+   ],
+   "title": "分组共享并发度",
+   "type": "timeseries"
+  },
+  {
+   "datasource": {
+    "type": "prometheus",
+    "uid": "reactorsched-prometheus"
+   },
+   "description": "AIMD 调整频率。决策原因分布的完整记录在调度中心的 /api/v1/decisions（数据库口径，不进高频指标，PRD 8.6）。",
+   "fieldConfig": {
+    "defaults": {
+     "unit": "ops"
+    },
+    "overrides": []
+   },
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 8,
+    "y": 16
+   },
+   "id": 8,
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "reactorsched-prometheus"
+     },
+     "editorMode": "code",
+     "expr": "sum by (executor_group) (rate(reactorsched_concurrency_adjustments_total[5m]))",
+     "legendFormat": "{{executor_group}}",
+     "range": true,
+     "refId": "A"
+    }
+   ],
+   "title": "并发调整频率（按执行器组）",
+   "type": "timeseries"
+  },
+  {
+   "datasource": {
+    "type": "prometheus",
+    "uid": "reactorsched-prometheus"
+   },
+   "description": "任务定义的触发结果：fired 为成功生成实例，failed 为 fire time 丢失（PRD 6.2）。",
+   "fieldConfig": {
+    "defaults": {
+     "unit": "reqps"
+    },
+    "overrides": []
+   },
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 16,
+    "y": 16
+   },
+   "id": 9,
+   "options": {
+    "legend": {
+     "calcs": [
+      "mean",
+      "max"
+     ],
+     "displayMode": "table",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "reactorsched-prometheus"
+     },
+     "editorMode": "code",
+     "expr": "sum by (outcome, schedule_type) (rate(reactorsched_job_trigger_total[5m]))",
+     "legendFormat": "{{schedule_type}} {{outcome}}",
+     "range": true,
+     "refId": "A"
+    }
+   ],
+   "title": "任务触发速率（按类型与结果）",
+   "type": "timeseries"
+  },
+  {
+   "datasource": {
+    "type": "prometheus",
+    "uid": "reactorsched-prometheus"
+   },
+   "description": "决策原因分布：调度代码路径写入 scheduler_decision 的计数（按原因码）。每条决策来自真实代码路径（PRD 8.7），按 (实例, 原因码) 去重，低频；看不出曲线时说明系统没有做过相关决策，不是采集断了。",
+   "fieldConfig": {
+    "defaults": {
+     "unit": "reqps"
+    },
+    "overrides": []
+   },
+   "gridPos": {
+    "h": 8,
+    "w": 12,
+    "x": 0,
+    "y": 24
+   },
+   "id": 11,
+   "options": {
+    "legend": {
+     "displayMode": "table",
+     "placement": "right",
+     "showLegend": true,
+     "calcs": [
+      "mean",
+      "max"
+     ]
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "reactorsched-prometheus"
+     },
+     "editorMode": "code",
+     "expr": "topk(8, sum by (reason_code) (rate(reactorsched_decision_recorded_total[5m])))",
+     "legendFormat": "{{reason_code}}",
+     "range": true,
+     "refId": "A"
+    }
+   ],
+   "title": "决策原因分布",
+   "type": "timeseries"
+  },
+  {
+   "datasource": {
+    "type": "prometheus",
+    "uid": "reactorsched-prometheus"
+   },
+   "description": "进程存活：每个 scrape target（调度中心 ×2 + 执行器 ×2）一条线。",
+   "fieldConfig": {
+    "defaults": {
+     "mappings": [
+      {
+       "type": "value",
+       "options": {
+        "0": {
+         "color": "red",
+         "index": 0,
+         "text": "DOWN"
+        },
+        "1": {
+         "color": "green",
+         "index": 1,
+         "text": "UP"
+        }
+       }
+      }
+     ],
+     "unit": "short"
+    },
+    "overrides": []
+   },
+   "gridPos": {
+    "h": 8,
+    "w": 12,
+    "x": 12,
+    "y": 24
+   },
+   "id": 10,
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom",
+     "showLegend": true
+    },
+    "tooltip": {
+     "mode": "single",
+     "sort": "desc"
+    }
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "reactorsched-prometheus"
+     },
+     "editorMode": "code",
+     "expr": "up",
+     "legendFormat": "{{job}} {{instance}}",
+     "range": true,
+     "refId": "A"
+    }
+   ],
+   "title": "实例存活",
+   "type": "timeseries"
+  }
+ ],
+ "refresh": "10s",
+ "schemaVersion": 39,
+ "tags": [
+  "reactorsched"
+ ],
+ "templating": {
+  "list": []
+ },
+ "time": {
+  "from": "now-6h",
+  "to": "now"
+ },
+ "timepicker": {},
+ "timezone": "browser",
+ "title": "Reactor Overview",
+ "uid": "reactor-overview",
+ "version": 2,
+ "weekStart": ""
+}

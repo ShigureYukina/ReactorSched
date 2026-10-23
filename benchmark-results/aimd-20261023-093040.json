@@ -1,0 +1,40 @@
+{
+  "scenario": "aimd",
+  "runStamp": "20261023-093040",
+  "environment": {
+    "machine": "SHIGURE-YUKI",
+    "os": "Microsoft Windows 10 专业版",
+    "cpu": "AMD Ryzen 5 7500F 6-Core Processor             ",
+    "cores": 12,
+    "java": "openjdk version \"21.0.12.1\" 2026-08-18 LTS",
+    "database": "MySQL 8.4 (docker, reactorsched-mysql)",
+    "schedulerInstances": 1,
+    "executorInstances": 1,
+    "executorKind": "embedded LOCAL worker",
+    "concurrency": 2,
+    "adaptiveEnabled": true
+  },
+  "load": {
+    "instances": 400,
+    "downstreamLatencyMs": 120,
+    "overloadErrorRate": 0.6,
+    "overloadSeconds": 20,
+    "submitThreads": 8
+  },
+  "results": {
+    "throughputPerSecond": 3.08,
+    "submissionSeconds": 3.67,
+    "succeeded": 400,
+    "failed": 0,
+    "failureRate": 0.0,
+    "peakBacklog": 355,
+    "recoverySeconds": 105.99,
+    "queueP50Ms": 71297.0,
+    "queueP95Ms": 123637.0,
+    "queueP99Ms": 127587.8,
+    "executionP50Ms": 138.0,
+    "executionP95Ms": 141.0,
+    "executionP99Ms": 153.8,
+    "attempts": 425
+  }
+}

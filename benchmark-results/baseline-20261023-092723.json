@@ -1,0 +1,144 @@
+{
+  "scenario": "baseline",
+  "runStamp": "20261023-092723",
+  "environment": {
+    "machine": "SHIGURE-YUKI",
+    "os": "Microsoft Windows 10 专业版",
+    "cpu": "AMD Ryzen 5 7500F 6-Core Processor             ",
+    "cores": 12,
+    "java": {
+      "Exception": {
+        "SerializedRemoteException": null,
+        "SerializedRemoteInvocationInfo": null,
+        "ErrorRecord": {
+          "Exception": {
+            "Message": "openjdk version \"21.0.12.1\" 2026-08-18 LTS",
+            "TargetSite": null,
+            "Data": {},
+            "InnerException": null,
+            "HelpLink": null,
+            "Source": null,
+            "HResult": -2146233087,
+            "StackTrace": null
+          },
+          "TargetObject": null,
+          "CategoryInfo": {
+            "Category": 0,
+            "Activity": "",
+            "Reason": "ParentContainsErrorRecordException",
+            "TargetName": "",
+            "TargetType": ""
+          },
+          "FullyQualifiedErrorId": "RuntimeException",
+          "ErrorDetails": null,
+          "InvocationInfo": null,
+          "ScriptStackTrace": null,
+          "PipelineIterationInfo": []
+        },
+        "WasThrownFromThrowStatement": false,
+        "TargetSite": null,
+        "Message": "openjdk version \"21.0.12.1\" 2026-08-18 LTS",
+        "Data": {},
+        "InnerException": null,
+        "HelpLink": null,
+        "Source": null,
+        "HResult": -2146233087,
+        "StackTrace": null
+      },
+      "TargetObject": "openjdk version \"21.0.12.1\" 2026-08-18 LTS",
+      "CategoryInfo": {
+        "Category": 0,
+        "Activity": "",
+        "Reason": "RemoteException",
+        "TargetName": "openjdk version \"21.0.12.1\" 2026-08-18 LTS",
+        "TargetType": "String"
+      },
+      "FullyQualifiedErrorId": "NativeCommandError",
+      "ErrorDetails": null,
+      "InvocationInfo": {
+        "MyCommand": {
+          "Path": "C:\\Users\\sweyyuki\\.jdks\\jdk-21.0.12.1+1\\bin\\java.exe",
+          "Extension": ".exe",
+          "Definition": "C:\\Users\\sweyyuki\\.jdks\\jdk-21.0.12.1+1\\bin\\java.exe",
+          "Source": "C:\\Users\\sweyyuki\\.jdks\\jdk-21.0.12.1+1\\bin\\java.exe",
+          "Version": {
+            "Major": 21,
+            "Minor": 0,
+            "Build": 12,
+            "Revision": 1,
+            "MajorRevision": 0,
+            "MinorRevision": 1
+          },
+          "Visibility": 0,
+          "OutputType": [
+            {
+              "Name": "System.String",
+              "Type": "string",
+              "TypeDefinitionAst": null
+            }
+          ],
+          "Name": "java.exe",
+          "CommandType": 32,
+          "ModuleName": "",
+          "Module": null,
+          "RemotingCapability": 1,
+          "Parameters": null,
+          "ParameterSets": null
+        },
+        "BoundParameters": {},
+        "UnboundArguments": [],
+        "ScriptLineNumber": 234,
+        "OffsetInLine": 21,
+        "HistoryId": -1,
+        "ScriptName": "E:\\jianli\\ReactorSched\\scripts\\benchmark.ps1",
+        "Line": "            java = (& $javaPath -version 2>&1 | Select-Object -First 1)\n",
+        "Statement": "& $javaPath -version 2>&1",
+        "PositionMessage": "At E:\\jianli\\ReactorSched\\scripts\\benchmark.ps1:234 char:21\r\n+             java = (& $javaPath -version 2>&1 | Select-Object -First  …\r\n+                     ~~~~~~~~~~~~~~~~~~~~~~~~~",
+        "PSScriptRoot": "E:\\jianli\\ReactorSched\\scripts",
+        "PSCommandPath": "E:\\jianli\\ReactorSched\\scripts\\benchmark.ps1",
+        "InvocationName": "&",
+        "PipelineLength": 0,
+        "PipelinePosition": 0,
+        "ExpectingInput": false,
+        "CommandOrigin": 1,
+        "DisplayScriptPosition": null
+      },
+      "ScriptStackTrace": "at <ScriptBlock>, E:\\jianli\\ReactorSched\\scripts\\benchmark.ps1: line 226",
+      "PipelineIterationInfo": [
+        0,
+        0,
+        0
+      ],
+      "PSMessageDetails": null
+    },
+    "database": "MySQL 8.4 (docker, reactorsched-mysql)",
+    "schedulerInstances": 1,
+    "executorInstances": 1,
+    "executorKind": "embedded LOCAL worker",
+    "concurrency": 2,
+    "adaptiveEnabled": false
+  },
+  "load": {
+    "instances": 400,
+    "downstreamLatencyMs": 120,
+    "overloadErrorRate": 0.6,
+    "overloadSeconds": 20,
+    "submitThreads": 8
+  },
+  "results": {
+    "throughputPerSecond": 3.45,
+    "submissionSeconds": 3.49,
+    "succeeded": 400,
+    "failed": 0,
+    "failureRate": 0.0,
+    "peakBacklog": 350,
+    "recoverySeconds": 92.52,
+    "queueP50Ms": 55974.5,
+    "queueP95Ms": 109449.6,
+    "queueP99Ms": 113741.5,
+    "executionP50Ms": 138.5,
+    "executionP95Ms": 153.0,
+    "executionP99Ms": 161.4,
+    "attempts": 438
+  }
+}

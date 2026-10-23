@@ -1,0 +1,87 @@
+name: ci
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      # 集成测试用 Testcontainers 起真实 MySQL 8.4（app/src/test/.../MySQLSupport.java）。
+      # ubuntu-latest 自带 Docker，无需 services 段；Ryuk 负责回收容器。
+      #
+      # `verify` 而非 `test`：surefire 只匹配 *Test（14 个纯单元），
+      # app 模块的 failsafe 绑定把 24 个 *IT 挂到 integration-test 阶段，
+      # 只有 verify 才会执行——这些 IT 承载 AGENTS.md §9 的验收项
+      # （幂等提交、多实例领取、租约回收、fencing token 拒写、副作用故障窗口）。
+      - name: Build & verify
+        run: mvn -B -ntp clean verify
+
+      - name: Upload surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: '**/target/surefire-reports/**'
+          if-no-files-found: ignore
+
+      - name: Upload failsafe reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failsafe-reports
+          path: '**/target/failsafe-reports/**'
+          if-no-files-found: ignore
+
+  docker-smoke:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t reactorsched-app:ci .
+
+      # 冒烟：起依赖栈 + 应用容器，等 /actuator/health 变成 UP。
+      # 只验证「镜像能起来并连上依赖」，不重复跑集成测试。
+      - name: Start dependencies
+        run: |
+          docker network create ci-net
+          docker run -d --name mysql --network ci-net \
+            -e MYSQL_ROOT_PASSWORD=ci-smoke -e MYSQL_DATABASE=reactor -e TZ=UTC \
+            mysql:8.4
+
+      - name: Run container & smoke test
+        run: |
+          for i in $(seq 1 60); do
+            if docker exec mysql mysqladmin ping -h 127.0.0.1 -uroot -pci-smoke --silent; then break; fi
+            sleep 3
+          done
+          docker run -d --name reactorsched-app --network ci-net -p 8080:8080 \
+            -e MYSQL_HOST=mysql -e MYSQL_PORT=3306 -e MYSQL_DATABASE=reactor \
+            -e MYSQL_USER=root -e MYSQL_PASSWORD=ci-smoke \
+            -e REACTORSCHED_ADMIN_PASSWORD=ci-smoke-admin \
+            reactorsched-app:ci
+          for i in $(seq 1 60); do
+            if curl -fs http://localhost:8080/actuator/health | grep -q '"status":"UP"'; then
+              echo "container healthy"; exit 0
+            fi
+            sleep 3
+          done
+          echo "::error::container failed to become healthy"
+          docker logs reactorsched-app | tail -80
+          exit 1

@@ -1,0 +1,181 @@
+spring:
+  application:
+    name: reactor
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:reactorsched}?connectionTimeZone=UTC&characterEncoding=UTF-8
+    # The defaults match the development container of docker-compose.yml (user reactorsched);
+    # compose and any other deployment override them through the environment.
+    username: ${MYSQL_USER:reactorsched}
+    password: ${MYSQL_PASSWORD:reactorsched123}
+    hikari:
+      maximum-pool-size: 16
+      pool-name: reactorsched-pool
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  threads:
+    virtual:
+      enabled: false
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    # Enums are stored as their name (PENDING, SUCCEEDED, ...) so rows stay readable in SQL.
+    default-enum-type-handler: org.apache.ibatis.type.EnumTypeHandler
+  global-config:
+    banner: false
+
+server:
+  port: 8080
+
+reactorsched:
+  worker:
+    enabled: true
+    concurrency: 4
+    # Executor group this embedded LOCAL executor serves (PRD 7.2/7.5). Only instances whose
+    # executor_group matches are claimed; the constraint sits in the claim's WHERE clause.
+    group: DEFAULT
+    poll-interval: 500ms
+    batch-size: 10
+    lease-ttl: 60s
+    # Lease renewal defaults to lease-ttl / 3 (here 20s); set it explicitly when you want a
+    # different heartbeat. It must stay below lease-ttl, otherwise the task would be reclaimed
+    # while it is still running.
+    lease-renew-interval: 20s
+    # Optional per task-type concurrency cap, e.g.
+    # task-type-limits:
+    #   report: 2
+  retry:
+    base-delay: 1s
+    multiplier: 2.0
+    max-delay: 5m
+    jitter: 0.2
+    # Upper bound of retry dispatches per second, so a wave of failures cannot crowd out the
+    # normal tasks (PRD 5.4). Set to 0 to disable the limit.
+    max-dispatches-per-second: 20
+  recovery:
+    enabled: true
+    scan-interval: 5s
+    batch-size: 50
+    orphan-sweep-enabled: true
+  # Scheduled dispatch (PRD 6.2, 6.4, 6.5): the scan turns due definitions into instances. Fire
+  # times are claimed with a conditional update on the observed next_fire_at, so several schedulers
+  # can run against one database and exactly one of them fires each fire time.
+  scheduler:
+    enabled: true
+    # One second keeps the gap between the planned fire time and the instance small; the grace
+    # period absorbs the rest (PRD 6.2).
+    scan-interval: 1s
+    batch-size: 50
+    # How many missed fire times one catch-up round creates instances for; the rest is skipped and
+    # reported (PRD 6.4).
+    max-catch-up: 20
+    # Node clock drift from the database clock that is still considered healthy (PRD 6.5).
+    max-clock-skew: 2s
+  # Adaptive concurrency control (PRD 5.5). Disabled by default so the engine keeps the fixed
+  # concurrency semantics unless the experiment explicitly turns it on.
+  adaptive:
+    enabled: false
+    min-concurrency: 1
+    max-concurrency: 8
+    initial-concurrency: 4
+    sample-interval: 2s
+    latency-threshold: 500ms
+    error-rate-threshold: 0.3
+    timeout-rate-threshold: 0.2
+    increase-step: 1
+    decrease-factor: 0.5
+    max-decrease-step: 4
+    cooldown: 10s
+    consecutive-breaches-before-decrease: 2
+    recovery-observation: 15s
+    conservative-concurrency: 1
+  # Simulated downstream used by the fault experiments and by the `downstream` task type.
+  fault-lab:
+    latency-ms: 0
+    jitter-ms: 0
+    error-rate: 0.0
+    failure-kind: TRANSIENT
+    retry-after-ms: 2000
+    seed: 0
+  # Authentication and authorization for the management endpoints (PRD 8.4): task cancel, task
+  # replay and fault injection require a user with the ADMIN role. The default password is for
+  # local development only - override REACTORSCHED_ADMIN_PASSWORD anywhere else.
+  security:
+    users:
+      admin:
+        password: ${REACTORSCHED_ADMIN_PASSWORD:reactor-dev}
+        roles: ADMIN
+  # Scheduling center's executor-facing side (PRD 7.1, 7.2): registration, heartbeat, claim, result
+  # and renewal all require this shared secret as the X-ReactorSched-Token header. The default is
+  # for local development only - override REACTORSCHED_EXECUTOR_TOKEN anywhere else.
+  # Entry-point backpressure (PRD 8.5): instance submission and manual triggers answer 429 with
+  # BACKPRESSURE_REJECTED once either metric exceeds its threshold. 0 disables a dimension.
+  backpressure:
+    backlog-reject-threshold: 1000
+    queue-reject-threshold: 10000
+  executor:
+    token: ${REACTORSCHED_EXECUTOR_TOKEN:reactor-executor-dev}
+    heartbeat-interval: 10s
+    # Three missed heartbeats take an executor OFFLINE; the sweep itself runs every heartbeat.
+    offline-threshold: 30s
+    sweep-interval: 10s
+    # Lease an executor takes when it claims an instance (PRD 7.2).
+    lease-ttl: 60s
+    # Center-side bound of a reported log, beyond what the SDK already bounded (PRD 9).
+    log-max-bytes: 65536
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # prometheus is scraped by the monitoring stack (deploy/, PRD 6.1: Micrometer/Prometheus + Grafana).
+        include: health,metrics,info,prometheus
+
+logging:
+  level:
+    com.yuki.reactorsched: INFO
+
+---
+# The executor role (PRD 12.5): the SDK only, no database. Start it with
+#   java -jar app.jar --spring.profiles.active=executor
+# or SPRING_PROFILES_ACTIVE=executor. Every scheduling-center component is excluded by
+# @Profile("!executor"), so this process registers, heartbeats, claims and reports over REST and
+# never opens a connection pool.
+spring:
+  config:
+    activate:
+      on-profile: executor
+  flyway:
+    enabled: false
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
+      - com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
+      # Its filter chain needs the HttpSecurity builder of SecurityAutoConfiguration; without the
+      # app's own security configuration (this profile) the management chain has nothing to build on.
+      - org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration
+
+reactorsched:
+  worker:
+    enabled: false
+  scheduler:
+    enabled: false
+  recovery:
+    enabled: false
+  # The SDK side shares the `reactorsched.executor` prefix with the center's registry (AGENTS.md 6);
+  # the fields below are the ones an executor process needs.
+  executor:
+    base-url: ${REACTORSCHED_BASE_URL:http://localhost:8080}
+    token: ${REACTORSCHED_EXECUTOR_TOKEN:reactor-executor-dev}
+    app-name: ${REACTORSCHED_EXECUTOR_APP_NAME:reactorsched-executor}
+    # host:pid by default; set it explicitly when containers must keep a stable identity.
+    instance-id: ${REACTORSCHED_EXECUTOR_INSTANCE_ID:}
+    group: ${REACTORSCHED_EXECUTOR_GROUP:DEFAULT}
+    max-concurrency: 4
+    queue-capacity: 256
+    # The executor process serves no business API, but it keeps the web server for /actuator
+    # (health + prometheus), which the monitoring stack scrapes (PRD 8.6).

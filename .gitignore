@@ -1,0 +1,15 @@
+# build output
+target/
+
+# local process logs (verify/demo/bench evidence stays on the machine)
+_*.log
+_tmp/
+
+# internal docs & AI collaboration material (kept locally, not published)
+docs/
+AGENTS.md
+
+# IDE
+.idea/
+*.iml
+.vscode/

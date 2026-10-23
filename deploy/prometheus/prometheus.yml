@@ -1,0 +1,36 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  # The scheduling center started by `docker compose up` (or `--scale scheduler=2`). DNS service
+  # discovery follows every replica of the service name, so a scaled-out center is scraped without
+  # editing this file (PRD 12.5).
+  - job_name: reactorsched-scheduler
+    metrics_path: /actuator/prometheus
+    dns_sd_configs:
+      - names: ["scheduler"]
+        type: A
+        port: 8080
+        labels:
+          run_mode: compose
+          role: scheduler
+
+  # The two executor containers of the same compose network (PRD 12.5).
+  - job_name: reactorsched-executor
+    metrics_path: /actuator/prometheus
+    dns_sd_configs:
+      - names: ["executor-a", "executor-b"]
+        type: A
+        port: 8080
+        labels:
+          run_mode: compose
+          role: executor
+
+  # An engine started outside compose (mvnw spring-boot:run, scripts/demo.ps1) on the Docker host.
+  - job_name: reactorsched-app-host
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["host.docker.internal:8080"]
+        labels:
+          run_mode: host

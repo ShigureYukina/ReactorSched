@@ -1,0 +1,128 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: reactorsched-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: reactorsched
+      MYSQL_USER: reactorsched
+      MYSQL_PASSWORD: reactorsched123
+      TZ: UTC
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-prootpass"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  # The scheduling center (PRD 12.5). It serves the API, scans schedules and recovers leases, but
+  # executes nothing itself: workers are disabled so the topology stays honest about where work
+  # runs. Scale it with `docker compose up -d --scale scheduler=2`; the optimistic-lock claim keeps
+  # one fire time to one instance (PRD 6.2, MultiSchedulerTriggerIT).
+  # No container_name on purpose: a fixed name blocks --scale.
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: "3306"
+      MYSQL_DATABASE: reactorsched
+      MYSQL_USER: reactorsched
+      MYSQL_PASSWORD: reactorsched123
+      # Only a local development default; override it for anything beyond this machine.
+      REACTORSCHED_ADMIN_PASSWORD: ${REACTORSCHED_ADMIN_PASSWORD:-reactor-dev}
+      REACTORSCHED_EXECUTOR_TOKEN: ${REACTORSCHED_EXECUTOR_TOKEN:-reactor-executor-dev}
+      REACTORSCHED_WORKER_ENABLED: "false"
+    ports:
+      - "8080:8080"
+    healthcheck:
+      # TCP connect check: the JRE base image ships no curl/wget.
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8080' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  # The executor role: the same artifact, started with the executor profile (PRD 12.5). It
+  # registers with the center, claims instances over REST and reports results - no database
+  # connection is opened at all (ExecutorProfileIT pins this). Each executor gets its own
+  # instance-id so a restart takes a fresh registry row instead of reviving a stale one.
+  executor-a:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - scheduler
+    environment:
+      SPRING_PROFILES_ACTIVE: executor
+      REACTORSCHED_BASE_URL: http://scheduler:8080
+      REACTORSCHED_EXECUTOR_TOKEN: ${REACTORSCHED_EXECUTOR_TOKEN:-reactor-executor-dev}
+      REACTORSCHED_EXECUTOR_GROUP: ${REACTORSCHED_EXECUTOR_GROUP_A:-DEFAULT}
+      REACTORSCHED_EXECUTOR_INSTANCE_ID: executor-a
+    ports:
+      - "8081:8080"
+
+  executor-b:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - scheduler
+    environment:
+      SPRING_PROFILES_ACTIVE: executor
+      REACTORSCHED_BASE_URL: http://scheduler:8080
+      REACTORSCHED_EXECUTOR_TOKEN: ${REACTORSCHED_EXECUTOR_TOKEN:-reactor-executor-dev}
+      REACTORSCHED_EXECUTOR_GROUP: ${REACTORSCHED_EXECUTOR_GROUP_B:-DEFAULT}
+      REACTORSCHED_EXECUTOR_INSTANCE_ID: executor-b
+    ports:
+      - "8082:8080"
+
+  # Observability stack (PRD 8.6: Micrometer/Prometheus + Grafana). It hangs behind the
+  # `monitoring` profile so the default `docker compose up` (mysql + scheduler + executors) stays
+  # unchanged:
+  #   docker compose --profile monitoring up -d
+  # Grafana: http://localhost:3000 (anonymous read-only viewer), dashboards auto-provisioned
+  # from deploy/grafana/dashboards. Prometheus: http://localhost:9090
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: reactorsched-prometheus
+    profiles: ["monitoring"]
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=7d
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:11.3.1
+    container_name: reactorsched-grafana
+    profiles: ["monitoring"]
+    depends_on:
+      - prometheus
+    environment:
+      # Anonymous read-only viewer keeps the local demo friction-free; anything beyond this
+      # machine must set its own credentials instead.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+
+volumes:
+  mysql-data:
